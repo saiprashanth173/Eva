@@ -11,14 +11,16 @@ class Load:
     self.data_dict = {}
     self.label_dict = {}
 		#TODO: Make this inheritance
-    prefix = "/nethome/jbang36/eva/data/"
+    prefix = "/nethome/rduggal7/eva/Eva/data/"
     if name == "ua_detrac":
       self.label_path = prefix + name + '/small-annotation/'
       self.input_path = prefix + name + '/small-data/'
-      self.vehtype_filters = ['car', 'van', 'bus', 'others']
+      # self.vehtype_filters = ['car', 'van', 'bus', 'others']
+      self.vehtype_filters = ['van', 'bus', 'others']
       self.weather_filters = ['cloudy', 'night', 'sunny', 'rainy']
       self.vehcolor_filters = ['white', 'black', 'silver', 'red']
       #TODO: There are 2 more types of filters mentioned in the paper: i(where it starts), o(where it ends)
+      
       if __debug__:
         print(self.label_path)
         print(self.input_path)
@@ -35,10 +37,11 @@ class Load:
         listd = os.listdir(os.path.join(root, dire))
         num_frames_list.append(len(listd))
       for filename in sorted(files):
-        file_path = os.path.join(root, filename)
+        file_path = os.path.join(root, filename)        
         list_of_files.append(file_path)
+    
     if __debug__:
-      print "Number of files: " + str( len(list_of_files) )
+      print("Number of files: " + str( len(list_of_files) ))
     image_width = 960
     image_height = 540
     ratio = 12

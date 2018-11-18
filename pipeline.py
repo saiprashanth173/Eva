@@ -55,11 +55,11 @@ class Pipeline:
     self.pp.train_all(X_train, label_dict_train)
     print("--- Total Execution Time for training the dataset : %.3f seconds ---" % (time.time() - start_time))
     if __debug__:
-      print X_train.shape
-      print X_test.shape
+      print(X_train.shape)
+      print(X_test.shape)
 
     category_stats = self.pp.evaluate(X_test, label_dict_test)
-    print category_stats
+    print(category_stats)
 
 
     return

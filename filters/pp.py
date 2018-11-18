@@ -1,4 +1,4 @@
-from kdewrapper import KernelDensityWrapper
+from filters.kdewrapper import KernelDensityWrapper
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import FeatureHasher
@@ -154,13 +154,3 @@ class PP:
   # returns list of model names
   def getModelLibrary(self):
     return self.model_library.keys()
-
-
-
-
-
-
-
-
-
-
