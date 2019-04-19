@@ -104,6 +104,34 @@ class QueryOptimizer:
       return [start, end]
 
 
+  
+  '''return the list of indices of the start and end of each of the inner most parentheses'''
+  def _findInnerMostParentheses(self,sentence):
+    parenthesesList = []
+    last_p = None
+    this_p = None
+    last_index = 0
+    this_index = 0
+    for i in range(len(sentence)):
+        if sentence[i] == "(":
+            last_p = this_p
+            last_index = this_index
+            this_p = "open"
+            this_index = i
+        elif sentence[i] == ")":
+            last_p = this_p
+            last_index = this_index
+            this_p = "closed"
+            this_index = i
+            if (last_p == "open"):
+                parenthesesList.append([last_index, this_index])
+    return parenthesesList
+
+
+  def _splitQuery(self, query):
+    split_query = query.split("WHERE");
+    return split_query[1]
+
   def _parseQuery(self, query):
     """
     Each sub query will be a list
@@ -111,26 +139,29 @@ class QueryOptimizer:
     :param query:
     :return:
     """
+    parsed_query = _splitQuery(self,query)
+    parenthesis_list = _findInnerMostParentheses(self,parsed_query)
+    operator_list = []
+    predicate_list = []
+    temp_predicate_list = []
+    counter = 3
+    for i in parenthesis_list:
+        temp_pred = parsed_query[i[0]+1:i[1]]
+        temp_pred_split = temp_pred.split(" ")
+        symbol = temp_pred_split[1]
+        if(len(temp_pred_split) > 2):
+           symbol = ''.join(temp_pred_split[1:])
+        if(temp_pred_split[0] == "logicalOperator"):
+          operator_list.append(symbol)
+        else :
+          temp_predicate_list.append(symbol)
+          counter -= 1
+          if(counter == 0):
+            predicate_list.append(temp_predicate_list)
+            temp_predicate_list = []
+            counter = 3
+    return predicate_list,operator_list
 
-
-    query_parsed = []
-    query_subs = query.split(" ")
-    query_operators = []
-    for query_sub in query_subs:
-      if query_sub == "||" or query_sub == "&&":
-        query_operators.append(query_sub)
-      else:
-
-        if True not in [operator in self.operators for operator in query_sub]:
-          return [],[]
-        for operator in self.operators:
-          query_sub_list = query_sub.split(operator)
-          if type(query_sub_list) is list and len(query_sub_list) > 1:
-            query_parsed.append([query_sub_list[0], operator, query_sub_list[1]])
-            break
-    #query_parsed ex: [ ["t", "=", "van"], ["s", ">", "60"]]
-    #query_operators ex: ["||", "||", "&&"]
-    return query_parsed, query_operators
 
 
 
@@ -179,6 +210,7 @@ class QueryOptimizer:
     #TODO: Need to implement range check
 
     query_parsed, query_operators = self._parseQuery(query)
+   
     #query_sorted = sorted(query_parsed)
 
     query_transformed = []
