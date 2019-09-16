@@ -1,4 +1,4 @@
-from query_optimizer.query_optimizer import QueryOptimizer
+from src.query_optimizer.query_optimizer import QueryOptimizer
 
 obj = QueryOptimizer()
 

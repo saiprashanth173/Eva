@@ -13,8 +13,8 @@ from itertools import product
 
 import numpy as np
 
-import constants
-from query_optimizer.qo_template import QOTemplate
+from src import constants
+from src.query_optimizer.qo_template import QOTemplate
 
 
 class QOMinimum(QOTemplate):

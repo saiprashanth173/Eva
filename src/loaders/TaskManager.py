@@ -1,5 +1,5 @@
-from loaders.color_detection import process_image
-from loaders.intersection_detection import intersection_detector
+from src.loaders import process_image
+from src.loaders.intersection_detection import intersection_detector
 
 
 class TaskManager():

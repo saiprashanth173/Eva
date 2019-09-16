@@ -1,5 +1,5 @@
 """
-Linear SVM wrapper
+Shallow Neural Network Wrapper
 
 @Jaeho Bang
 """
@@ -7,18 +7,20 @@ Linear SVM wrapper
 import time
 
 import numpy as np
-from sklearn.svm import LinearSVC
+from sklearn.neural_network import MLPClassifier
 
-from filters.models.ml_base import MLBase
+from src.filters.models.ml_base import MLBase
 
 
-class MLSVM(MLBase):
+class MLMLP(MLBase):
     def __init__(self, **kwargs):
-        super(MLSVM, self).__init__(MLBase)
+        super(MLMLP, self).__init__(MLBase)
         if kwargs:
-            self.model = LinearSVC(random_state=0)
+            self.model = MLPClassifier(solver='lbfgs', alpha=1e-5,
+                                       hidden_layer_sizes=(5, 2),
+                                       random_state=1)
         else:
-            self.model = LinearSVC(**kwargs)
+            self.model = MLPClassifier(**kwargs)
 
     def train(self, X: np.ndarray, y: np.ndarray):
         n_samples = X.shape[0]

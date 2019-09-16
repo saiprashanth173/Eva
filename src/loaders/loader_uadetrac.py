@@ -16,8 +16,8 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from loaders import TaskManager
-from loaders.loader_template import LoaderTemplate
+from src.loaders import TaskManager
+from src.loaders import LoaderTemplate
 
 parser = argparse.ArgumentParser(description='Define arguments for loader')
 parser.add_argument('--image_path', default='small-data',

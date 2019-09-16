@@ -10,8 +10,8 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-from filters.filter_template import FilterTemplate
-from filters.models.ml_randomforest import MLRandomForest
+from src.filters.filter_template import FilterTemplate
+from src.filters.models.ml_randomforest import MLRandomForest
 
 # Meant to be a black box for trying all models available and returning
 # statistics and model for
