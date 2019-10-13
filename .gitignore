@@ -116,8 +116,8 @@ venv.bak/
 *.pkl
 
 # data
-data/*
-!data/README.md
-!data/ua_detrac/README.md
-!data/ua_detrac/*.sh
+eva/data/*
+!eva/data/README.md
+!eva/data/ua_detrac/README.md
+!eva/data/ua_detrac/*.sh
 

@@ -9,11 +9,10 @@ import numpy as np
 import pandas as pd
 
 from copy import deepcopy
-from filters.abstract_filter import FilterTemplate
-from filters.models.ml_randomforest import MLRandomForest
-from filters.models.ml_svm import MLSVM
-from filters.models.ml_dnn import MLMLP
-
+from eva.filters.abstract_filter import FilterTemplate
+from eva.filters.models.ml_randomforest import MLRandomForest
+from eva.filters.models.ml_svm import MLSVM
+from eva.filters.models.ml_dnn import MLMLP
 
 # Meant to be a black box for trying all models available and returning statistics and model for
 # the query optimizer to choose for a given query
@@ -230,11 +229,3 @@ if __name__ == "__main__":
     stats = filter.getAllStats()
     print(stats)
     print("filter got all stats")
-
-
-
-
-
-
-
-

@@ -3,9 +3,9 @@ import sys
 
 import numpy as np
 
-import filters.pp as pp
-import loaders.load as load
-import query_optimizer.query_optimizer as qo
+import eva.filters.pp as pp
+import eva.loaders.load as load
+import eva.query_optimizer.query_optimizer as qo
 
 try:
     import constants
@@ -38,7 +38,7 @@ class Pipeline:
         print("Loading data....")
         image_matrix, data_table = self.load()
         self.image_matrix_train, self.image_matrix_test, \
-            self.data_table_train, self.data_table_test = \
+        self.data_table_train, self.data_table_test = \
             self._split_train_val(image_matrix, data_table)
         print("Training data....")
         self.train()
@@ -51,13 +51,14 @@ class Pipeline:
         n_samples, _, _, _ = X.shape
         mixed_indices = np.random.permutation(n_samples)
         train_index_end = int(len(mixed_indices) * 0.8)
-
-        X_train = X[mixed_indices[:train_index_end]]
-        X_test = X[mixed_indices[train_index_end:]]
+        print(X.shape)
+        X_train = X[mixed_indices[:train_index_end], :]
+        X_test = X[mixed_indices[train_index_end:], :]
 
         label_dict_train = {}
         label_dict_test = {}
         for column in label_dict:
+            print(column)
             label_dict_train[column] = label_dict[column][
                 mixed_indices[:train_index_end]]
             label_dict_test[column] = label_dict[column][
@@ -68,9 +69,9 @@ class Pipeline:
     def load(self):
         eva_dir = os.path.dirname(os.path.abspath(__file__))
         train_image_dir = os.path.join(eva_dir, "data", "ua_detrac",
-                                       "tiny-data")
+                                       "Insight-MVT_Annotation_Train")
         train_anno_dir = os.path.join(eva_dir, "data", "ua_detrac",
-                                      "tiny-annotations")
+                                      "DETRAC-Train-Annotations-XML")
 
         dir_dict = {"train_image": train_image_dir,
                     "train_anno": train_anno_dir,

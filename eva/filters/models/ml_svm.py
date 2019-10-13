@@ -8,7 +8,7 @@ Wrapper takes responsibility of converting the input to the corresponding types 
 import numpy as np
 import time
 from sklearn.svm import LinearSVC
-from filters.models.ml_base import MLBase
+from eva.filters.models.ml_base import MLBase
 
 
 class MLSVM(MLBase):
@@ -19,14 +19,12 @@ class MLSVM(MLBase):
         else:
             self.model = LinearSVC(**kwargs)
 
-
-    def train(self, X :np.ndarray, y :np.ndarray):
+    def train(self, X: np.ndarray, y: np.ndarray):
 
         n_samples = X.shape[0]
         if X.ndim > 2:
             ## we must flatten the array
             X = X.reshape(n_samples, -1)
-
 
         division = int(n_samples * self.division_rate)
         X_train = X[:division]
@@ -45,6 +43,5 @@ class MLSVM(MLBase):
         self.A = score
         self.R = 1 - float(sum(y_hat)) / len(y_hat)
 
-    def predict(self, X :np.ndarray):
+    def predict(self, X: np.ndarray):
         return self.model.predict(X)
-

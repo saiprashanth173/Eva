@@ -1,120 +1,85 @@
 """
-This file implements the minimum query optimizer
-TODO: Currently there seems to be a importing issue that I am not sure how to
-solve
-Error Message: query_optimizer is not a package in line __
-We will add support for pyparse
-We need to fix a bug / make sure the outputs are correct
+This file composes the functions that are needed to perform query optimization.
+Currently, given a query, it does logical changes to forms that are
+sufficient conditions.
+Using statistics from Filters module, it outputs the optimal plan (converted
+query with models needed to be used).
+
+To see the query optimizer performance in action, simply run
+
+python query_optimizer/query_optimizer.py
 
 @Jaeho Bang
-"""
 
+"""
+import os
+import socket
+# The query optimizer decide how to label the data points
+# Load the series of queries from a txt file?
+import sys
+import threading
 from itertools import product
 
 import numpy as np
 
-import constants
-from query_optimizer.qo_template import QOTemplate
+from eva import constants
+
+eva_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(eva_dir)
 
 
-class QOMinimum(QOTemplate):
+class QueryOptimizer:
+    """
+    TODO: If you have a classifier for =, you can make a classifier for !=
+    TODO: Deal with parenthesis
+    """
 
-    def __init__(self):
-        # later add support for pyparsing.. could definitely help with
-        # parsing operations
+    def __init__(self, ip_str="127.0.0.1"):
+        self.ip_str = ip_str
+        # self.startSocket()
         self.operators = ["!=", ">=", "<=", "=", "<", ">"]
         self.separators = ["||", "&&"]
 
-    def executeQueries(self, queries: list):
+    def startSocket(self):
+        thread = threading.Thread(target=self.inputQueriesFromSocket)
+        thread.daemon = True
+        thread.start()
+        while True:
+            input = eval(input(
+                'Type in your query in the form of __label__ > __number__\n'))
 
-        synthetic_pp_list = ["t=suv", "t=van", "t=sedan", "t=truck",
-                             "c=red", "c=white", "c=black", "c=silver",
-                             "s>40", "s>50", "s>60", "s<65", "s<70",
-                             "i=pt335", "i=pt211", "i=pt342", "i=pt208",
-                             "o=pt335", "o=pt211", "o=pt342", "o=pt208"]
+            self.parseInput(input)
 
-        synthetic_pp_stats = {
-            "t=van": {"none/dnn": {"R": 0.1, "C": 0.1, "A": 0.9},
-                      "pca/dnn": {"R": 0.2, "C": 0.15, "A": 0.92},
-                      "none/kde": {"R": 0.15, "C": 0.05, "A": 0.95}},
-            "t=suv": {"none/svm": {"R": 0.13, "C": 0.01, "A": 0.95}},
-            "t=sedan": {"none/svm": {"R": 0.21, "C": 0.01, "A": 0.94}},
-            "t=truck": {"none/svm": {"R": 0.05, "C": 0.01, "A": 0.99}},
-
-            "c=red": {"none/svm": {"R": 0.131, "C": 0.011, "A": 0.951}},
-            "c=white": {"none/svm": {"R": 0.212, "C": 0.012, "A": 0.942}},
-            "c=black": {"none/svm": {"R": 0.133, "C": 0.013, "A": 0.953}},
-            "c=silver": {"none/svm": {"R": 0.214, "C": 0.014, "A": 0.944}},
-
-            "s>40": {"none/svm": {"R": 0.08, "C": 0.20, "A": 0.8}},
-            "s>50": {"none/svm": {"R": 0.10, "C": 0.20, "A": 0.82}},
-
-            "s>60": {"none/dnn": {"R": 0.12, "C": 0.21, "A": 0.87},
-                     "none/kde": {"R": 0.15, "C": 0.06, "A": 0.96}},
-
-            "s<65": {"none/svm": {"R": 0.05, "C": 0.20, "A": 0.8}},
-            "s<70": {"none/svm": {"R": 0.02, "C": 0.20, "A": 0.9}},
-
-            "o=pt211": {"none/dnn": {"R": 0.135, "C": 0.324, "A": 0.993},
-                        "none/kde": {"R": 0.143, "C": 0.123, "A": 0.932}},
-
-            "o=pt335": {"none/dnn": {"R": 0.134, "C": 0.324, "A": 0.994},
-                        "none/kde": {"R": 0.144, "C": 0.124, "A": 0.934}},
-
-            "o=pt342": {"none/dnn": {"R": 0.135, "C": 0.325, "A": 0.995},
-                        "none/kde": {"R": 0.145, "C": 0.125, "A": 0.935}},
-
-            "o=pt208": {"none/dnn": {"R": 0.136, "C": 0.326, "A": 0.996},
-                        "none/kde": {"R": 0.146, "C": 0.126, "A": 0.936}},
-
-            "i=pt211": {"none/dnn": {"R": 0.135, "C": 0.324, "A": 0.993},
-                        "none/kde": {"R": 0.143, "C": 0.123, "A": 0.932}},
-
-            "i=pt335": {"none/dnn": {"R": 0.134, "C": 0.324, "A": 0.994},
-                        "none/kde": {"R": 0.144, "C": 0.124, "A": 0.934}},
-
-            "i=pt342": {"none/dnn": {"R": 0.135, "C": 0.325, "A": 0.995},
-                        "none/kde": {"R": 0.145, "C": 0.125, "A": 0.935}},
-
-            "i=pt208": {"none/dnn": {"R": 0.136, "C": 0.326, "A": 0.996},
-                        "none/kde": {"R": 0.146, "C": 0.126, "A": 0.936}}}
-
-        # TODO: We will need to convert the queries/labels into "car, bus,
-        #  van, others". This is how the dataset defines things
-
-        label_desc = {
-            "t": [constants.DISCRETE, ["sedan", "suv", "truck", "van"]],
-            "s": [constants.CONTINUOUS, [40, 50, 60, 65, 70]],
-            "c": [constants.DISCRETE, ["white", "red", "black", "silver"]],
-            "i": [constants.DISCRETE, ["pt335", "pt342", "pt211", "pt208"]],
-            "o": [constants.DISCRETE, ["pt335", "pt342", "pt211", "pt208"]]}
-
-        print("Running Query Optimizer Demo...")
-
-        execution_plans = []
-        for query in queries:
-            execution_plans.append(
-                self.run(query, synthetic_pp_list, synthetic_pp_stats,
-                         label_desc))
-
-        return execution_plans
-
-    def run(self, query, pp_list, pp_stats, label_desc, k=3,
-            accuracy_budget=0.9):
+    def parseInput(self, input):
         """
-
-        :param query: query of interest ex) TRAF-20
-        :param pp_list: list of pp_descriptions - queries that are available
-        :param pp_stats: this will be dictionary where keys are "pca/ddn",
-                         it will have statistics saved which are R (
-                         reduction_rate), C (cost_to_train), A (accuracy)
-        :param k: number of different PPs that are in any expression E
-        :return: selected PPs to use for reduction
+        TODO: Need to provide query formats that can be used
+        :param input: string to be parsed
+        :return: something that the Load() class can understand
         """
-        query_transformed, query_operators = self._wrangler(query, label_desc)
-        # query_transformed is a comprehensive list of transformed queries
-        return self._compute_expression([query_transformed, query_operators],
-                                        pp_list, pp_stats, k, accuracy_budget)
+        pass
+
+    def inputQueriesFromTxt(self, input_path):
+        """
+        TODO: Read the file line by line, use self.parseInput to give back
+        commands
+        :param input_path: full directory + file name
+        :return: method of training the pps
+        """
+        pass
+
+    def inputQueriesFromSocket(self):
+        sock = socket.socket()
+        sock.bind(self.ip_str, 123)
+        sock.listen(3)
+        print("Waiting on connection")
+        conn = sock.accept()
+        print("Client connected")
+        while True:
+            m = conn[0].recv(4096)
+            conn[0].send(m[::-1])
+
+        sock.shutdown(socket.SHUT_RDWR)
+        sock.close()
 
     def _findParenthesis(self, query):
 
@@ -222,7 +187,8 @@ class QOMinimum(QOTemplate):
             operator = query_sub_list[1]
             object = query_sub_list[2]
 
-            assert (subject in label_desc)  # Label should be in label
+            assert (
+                    subject in label_desc)  # Label should be in label
             # description dictionary
             l_desc = label_desc[subject]
             if l_desc[0] == constants.DISCRETE:
@@ -233,8 +199,8 @@ class QOMinimum(QOTemplate):
                     if category != object:
                         alternate_string += subject + self._logic_reverse(
                             operator) + category + " && "
-                # must strip the last ' || '
-                alternate_string = alternate_string[:-len(" && ")]
+                alternate_string = alternate_string[
+                                   :-len(" && ")]  # must strip the last ' || '
                 # query_tmp, _ = self._parseQuery(alternate_string)
                 equivalence.append(alternate_string)
 
@@ -247,7 +213,7 @@ class QOMinimum(QOTemplate):
                 alternate_string = ""
                 if operator == "!=":
                     alternate_string += subject + ">" + object + " && " + \
-                        subject + "<" + object
+                                        subject + "<" + object
                     query_tmp, _ = self._parseQuery(alternate_string)
                     equivalence.append(query_tmp)
                 if operator == "<" or operator == "<=":
@@ -390,9 +356,8 @@ class QOMinimum(QOTemplate):
 
         return pp_names, op_names
 
-        # Make this function take in the list of reduction rates and the
-        # operator lists
-
+    # Make this function take in the list of reduction rates and the operator
+    # lists
     def _update_stats(self, evaluation_stats, query_operators):
         if len(evaluation_stats) == 0:
             return 0
@@ -402,14 +367,15 @@ class QOMinimum(QOTemplate):
         for i in range(1, len(evaluation_stats)):
             if query_operators[i - 1] == "&&":
                 final_red = final_red + evaluation_stats[i] - final_red * \
-                    evaluation_stats[i]
+                            evaluation_stats[i]
             elif query_operators[i - 1] == "||":
                 final_red = final_red * evaluation_stats[i]
 
         return final_red
 
     def _compute_cost_red_rate(self, C, R):
-        assert (R >= 0 and R <= 1)  # R is reduction rate and should be
+        assert (
+                R >= 0 and R <= 1)  # R is reduction rate and should be
         # between 0 and 1
         if R == 0:
             R = 0.000001
@@ -425,8 +391,8 @@ class QOMinimum(QOTemplate):
             if best == []:
                 best = [possible_model, self._compute_cost_red_rate(
                     possible_models[possible_model]["C"],
-                    possible_models[possible_model]["R"]), possible_models[
-                        possible_model]["R"]]
+                    possible_models[possible_model]["R"]),
+                        possible_models[possible_model]["R"]]
             else:
                 alternative_best_cost = self._compute_cost_red_rate(
                     possible_models[possible_model]["C"],
@@ -440,8 +406,39 @@ class QOMinimum(QOTemplate):
         else:
             return best[0], best[2]
 
+    def run(self, query, pp_list, pp_stats, label_desc, k=3,
+            accuracy_budget=0.9):
+        """
+
+        :param query: query of interest ex) TRAF-20
+        :param pp_list: list of pp_descriptions - queries that are available
+        :param pp_stats: this will be dictionary where keys are "pca/ddn",
+                         it will have statistics saved which are R (
+                         reduction_rate), C (cost_to_train), A (accuracy)
+        :param k: number of different PPs that are in any expression E
+        :return: selected PPs to use for reduction
+        """
+        query_transformed, query_operators = self._wrangler(query, label_desc)
+        # query_transformed is a comprehensive list of transformed queries
+        return self._compute_expression([query_transformed, query_operators],
+                                        pp_list, pp_stats, k, accuracy_budget)
+
 
 if __name__ == "__main__":
+
+    query_list = ["t=suv", "s>60",
+                  "c=white", "c!=white", "o=pt211", "c=white && t=suv",
+                  "s>60 && s<65", "t=sedan || t=truck", "i=pt335 && o=pt211",
+                  "t=suv && c!=white", "c=white && t!=suv && t!=van",
+                  "t=van && s>60 && s<65", "c!=white && (t=sedan || t=truck)",
+                  "i=pt335 && o!=pt211 && o!=pt208",
+                  "t=van && i=pt335 && o=pt211",
+                  "t!=sedan && c!=black && c!=silver && t!=truck",
+                  "t=van && s>60 && s<65 && o=pt211",
+                  "t!=suv && t!=van && c!=red && t!=white",
+                  "(i=pt335 || i=pt342) && o!=pt211 && o!=pt208",
+                  "i=pt335 && o=pt211 && t=van && c=red"]
+
     # TODO: Support for parenthesis queries
     query_list_mod = ["t=suv", "s>60",
                       "c=white", "c!=white", "o=pt211", "c=white && t=suv",
@@ -458,5 +455,130 @@ if __name__ == "__main__":
                       "i=pt335 || i=pt342 && o!=pt211 && o!=pt208",
                       "i=pt335 && o=pt211 && t=van && c=red"]
 
-    qo = QOMinimum()
-    print(qo.executeQueries(query_list_mod))
+    query_list_test = ["c=white && t!=suv && t!=van"]
+
+    synthetic_pp_list = ["t=suv", "t=van", "t=sedan", "t=truck",
+                         "c=red", "c=white", "c=black", "c=silver",
+                         "s>40", "s>50", "s>60", "s<65", "s<70",
+                         "i=pt335", "i=pt211", "i=pt342", "i=pt208",
+                         "o=pt335", "o=pt211", "o=pt342", "o=pt208"]
+
+    query_list_short = ["t=van && s>60 && o=pt211"]
+
+    synthetic_pp_list_short = ["t=van", "s>60", "o=pt211"]
+
+    # TODO: Might need to change this to a R vs A curve instead of static
+    #  numbers
+    # TODO: When selecting appropriate PPs, we only select based on reduction
+    #  rate
+    synthetic_pp_stats_short = {
+        "t=van": {"none/dnn": {"R": 0.1, "C": 0.1, "A": 0.9},
+                  "pca/dnn": {"R": 0.2, "C": 0.15, "A": 0.92},
+                  "none/kde": {"R": 0.15, "C": 0.05, "A": 0.95}},
+
+        "s>60": {"none/dnn": {"R": 0.12, "C": 0.21, "A": 0.87},
+                 "none/kde": {"R": 0.15, "C": 0.06, "A": 0.96}},
+
+        "o=pt211": {"none/dnn": {"R": 0.13, "C": 0.32, "A": 0.99},
+                    "none/kde": {"R": 0.14, "C": 0.12, "A": 0.93}}}
+
+    synthetic_pp_stats = {"t=van": {"none/dnn": {"R": 0.1, "C": 0.1, "A": 0.9},
+                                    "pca/dnn": {"R": 0.2, "C": 0.15,
+                                                "A": 0.92},
+                                    "none/kde": {"R": 0.15, "C": 0.05,
+                                                 "A": 0.95}},
+                          "t=suv": {
+                              "none/svm": {"R": 0.13, "C": 0.01, "A": 0.95}},
+                          "t=sedan": {
+                              "none/svm": {"R": 0.21, "C": 0.01, "A": 0.94}},
+                          "t=truck": {
+                              "none/svm": {"R": 0.05, "C": 0.01, "A": 0.99}},
+
+                          "c=red": {
+                              "none/svm": {"R": 0.131, "C": 0.011,
+                                           "A": 0.951}},
+                          "c=white": {
+                              "none/svm": {"R": 0.212, "C": 0.012,
+                                           "A": 0.942}},
+                          "c=black": {
+                              "none/svm": {"R": 0.133, "C": 0.013,
+                                           "A": 0.953}},
+                          "c=silver": {
+                              "none/svm": {"R": 0.214, "C": 0.014,
+                                           "A": 0.944}},
+
+                          "s>40": {
+                              "none/svm": {"R": 0.08, "C": 0.20, "A": 0.8}},
+                          "s>50": {
+                              "none/svm": {"R": 0.10, "C": 0.20, "A": 0.82}},
+
+                          "s>60": {
+                              "none/dnn": {"R": 0.12, "C": 0.21, "A": 0.87},
+                              "none/kde": {"R": 0.15, "C": 0.06, "A": 0.96}},
+
+                          "s<65": {
+                              "none/svm": {"R": 0.05, "C": 0.20, "A": 0.8}},
+                          "s<70": {
+                              "none/svm": {"R": 0.02, "C": 0.20, "A": 0.9}},
+
+                          "o=pt211": {
+                              "none/dnn": {"R": 0.135, "C": 0.324, "A": 0.993},
+                              "none/kde": {"R": 0.143, "C": 0.123,
+                                           "A": 0.932}},
+
+                          "o=pt335": {
+                              "none/dnn": {"R": 0.134, "C": 0.324, "A": 0.994},
+                              "none/kde": {"R": 0.144, "C": 0.124,
+                                           "A": 0.934}},
+
+                          "o=pt342": {
+                              "none/dnn": {"R": 0.135, "C": 0.325, "A": 0.995},
+                              "none/kde": {"R": 0.145, "C": 0.125,
+                                           "A": 0.935}},
+
+                          "o=pt208": {
+                              "none/dnn": {"R": 0.136, "C": 0.326, "A": 0.996},
+                              "none/kde": {"R": 0.146, "C": 0.126,
+                                           "A": 0.936}},
+
+                          "i=pt211": {
+                              "none/dnn": {"R": 0.135, "C": 0.324, "A": 0.993},
+                              "none/kde": {"R": 0.143, "C": 0.123,
+                                           "A": 0.932}},
+
+                          "i=pt335": {
+                              "none/dnn": {"R": 0.134, "C": 0.324, "A": 0.994},
+                              "none/kde": {"R": 0.144, "C": 0.124,
+                                           "A": 0.934}},
+
+                          "i=pt342": {
+                              "none/dnn": {"R": 0.135, "C": 0.325, "A": 0.995},
+                              "none/kde": {"R": 0.145, "C": 0.125,
+                                           "A": 0.935}},
+
+                          "i=pt208": {
+                              "none/dnn": {"R": 0.136, "C": 0.326, "A": 0.996},
+                              "none/kde": {"R": 0.146, "C": 0.126,
+                                           "A": 0.936}}}
+
+    # TODO: We will need to convert the queries/labels into "car, bus, van,
+    #  others". This is how the dataset defines things
+
+    label_desc = {"t": [constants.DISCRETE, ["sedan", "suv", "truck", "van"]],
+                  "s": [constants.CONTINUOUS, [40, 50, 60, 65, 70]],
+                  "c": [constants.DISCRETE,
+                        ["white", "red", "black", "silver"]],
+                  "i": [constants.DISCRETE,
+                        ["pt335", "pt342", "pt211", "pt208"]],
+                  "o": [constants.DISCRETE,
+                        ["pt335", "pt342", "pt211", "pt208"]]}
+
+    qo = QueryOptimizer()
+
+    print("Running Query Optimizer Demo...")
+
+    for query in query_list_mod:
+        print(query, " -> ", (
+            qo.run(query, synthetic_pp_list, synthetic_pp_stats, label_desc)))
+        # print qo.run(query, synthetic_pp_list_short,
+        # synthetic_pp_stats_short, label_desc)

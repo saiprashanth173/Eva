@@ -1,4 +1,4 @@
-from query_optimizer.query_optimizer import QueryOptimizer
+from eva.query_optimizer.query_optimizer import QueryOptimizer
 
 obj = QueryOptimizer()
 

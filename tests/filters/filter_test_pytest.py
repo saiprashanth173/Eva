@@ -3,7 +3,7 @@ import random
 import numpy as np
 from sklearn.neural_network import MLPClassifier
 
-from filters.pp import PP
+from eva.filters.pp import PP
 
 # TODO: FIX TEST CASES
 
