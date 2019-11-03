@@ -8,6 +8,9 @@ python:
   - "3.6"
 cache: pip
 
+script:
+  - .githooks/pre-receive
+
 before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -23,6 +26,7 @@ install:
   - conda list
 
 script:
+  - .githooks/pre-receive
   - pycodestyle --select E test src/loaders
   - pytest test/ --cov-report= --cov=./ -s -v
 
