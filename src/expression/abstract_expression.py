@@ -62,6 +62,18 @@ class AbstractExpression(ABC):
     def append_child(self, child):
         self._children.append(child)
 
+    def update_child(self, index: int, update: 'AbstractExpression'):
+        """
+        Updates the child expression type
+
+        Arguments:
+            index (int): index of child to be updated
+
+            update (AbstractExpression): expression which replaces the child
+
+        """
+        self._children[index] = update
+
     def get_children_count(self) -> int:
         return len(self._children)
 
