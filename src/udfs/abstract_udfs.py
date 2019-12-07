@@ -53,4 +53,4 @@ class AbstractClassifierUDF(metaclass=ABCMeta):
         pass
 
     def __call__(self, *args, **kwargs):
-        self.classify(*args, **kwargs)
+        return self.classify(*args, **kwargs)
