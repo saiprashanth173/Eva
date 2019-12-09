@@ -4,6 +4,7 @@ execution engine while mocking the query optimizer.
 
 Note: This is only for demo purpose. This commit will be reverted!
 """
+import os
 from typing import Optional
 
 from src.expression.abstract_expression import AbstractExpression
@@ -28,10 +29,12 @@ UDFS = {
 
 VIDEOS = {
     "test_1": VideoMetaInfo(
-        "/home/james-gangavarapu/Desktop/test_1.mp4", 30,
+        "/Users/prashanth/Projects/DDL/Eva/data/test_1.mp4", 30,
         VideoFormat.MP4)
 
 }
+
+DEVICE = os.environ.get('DEVICE', 'cpu')
 
 
 def bind_update_where_clause(clause: AbstractExpression) -> Optional[
@@ -49,7 +52,7 @@ def bind_update_where_clause(clause: AbstractExpression) -> Optional[
     if isinstance(clause, TupleValueExpression):
         col_lower = clause._col_name.lower()
         if col_lower in UDFS:
-            return FunctionExpression(UDFS[col_lower](),
+            return FunctionExpression(UDFS[col_lower]().to(DEVICE),
                                       mode=ExecutionMode.EXEC, name=col_lower)
     if isinstance(clause, ConstantValueExpression):
         constant = clause.evaluate().lower().replace("'", "")

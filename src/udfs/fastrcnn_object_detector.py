@@ -11,10 +11,10 @@ from src.models.catalog.properties import ColorSpace
 from src.models.inference.classifier_prediction import Prediction
 from src.models.inference.representation import BoundingBox, Point
 from src.models.storage.batch import FrameBatch
-from src.udfs.abstract_udfs import AbstractClassifierUDF
+from src.udfs.pytorch_abstract_udf import PytorchAbstractClassifierUDF
 
 
-class FastRCNNObjectDetector(AbstractClassifierUDF):
+class FastRCNNObjectDetector(PytorchAbstractClassifierUDF):
     """
     Arguments:
         threshold (float): Threshold for classifier confidence score
@@ -31,6 +31,7 @@ class FastRCNNObjectDetector(AbstractClassifierUDF):
         self.model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
             pretrained=True)
         self.model.eval()
+
 
     @property
     def input_format(self) -> FrameInfo:
@@ -82,15 +83,14 @@ class FastRCNNObjectDetector(AbstractClassifierUDF):
 
         """
 
-        transform = transforms.Compose([transforms.ToTensor()])
-        images = [transform(frame) for frame in frames]
+        images = [self.transform(frame) for frame in frames]
         predictions = self.model(images)
         prediction_boxes = []
         prediction_classes = []
         prediction_scores = []
         for prediction in predictions:
             pred_class = [str(self.labels[i]) for i in
-                          list(prediction['labels'].numpy())]
+                          list(prediction['labels'].detach().numpy())]
             pred_boxes = [BoundingBox(Point(i[0], i[1]), Point(i[2], i[3]))
                           for i in
                           list(prediction['boxes'].detach().numpy())]
@@ -111,5 +111,5 @@ class FastRCNNObjectDetector(AbstractClassifierUDF):
         (pred_classes, pred_scores, pred_boxes) = self._get_predictions(frames)
         return Prediction.predictions_from_batch_and_lists(batch,
                                                            pred_classes,
-                                                           pred_scores, 
+                                                           pred_scores,
                                                            boxes=pred_boxes)
