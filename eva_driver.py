@@ -92,9 +92,15 @@ def build_plan_tree(stmt: SelectStatement) -> AbstractPlan:
 
 
     """
+    limit = None
+    offset = None
+    if stmt.limit_clause:
+        limit = stmt.limit_clause.limit
+        offset = stmt.limit_clause.offset
+
     plan = SeqScanPlan(bind_update_where_clause(stmt.where_clause))
     storage = StoragePlan(bind_table_ref(stmt.from_table), batch_size=5,
-                          limit=5)
+                          limit=limit, offset=offset)
     plan.append_child(storage)
     return plan
 
@@ -103,6 +109,7 @@ def driver(sql):
     """
     The main driver code for EVA.
     """
+    sql = sql.upper()
     parser = EvaFrameQLParser()
     stmt = parser.parse(sql)
     plan = build_plan_tree(stmt[0])
