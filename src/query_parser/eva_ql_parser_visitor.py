@@ -11,6 +11,7 @@ from src.expression.comparison_expression import ComparisonExpression
 from src.expression.constant_value_expression import ConstantValueExpression
 from src.expression.logical_expression import LogicalExpression
 from src.expression.tuple_value_expression import TupleValueExpression
+from src.query_parser.limit_clause import LimitClause
 from src.query_parser.select_statement import SelectStatement
 from third_party.evaQL.parser.frameQLParser import frameQLParser
 from third_party.evaQL.parser.frameQLParserVisitor import frameQLParserVisitor
@@ -55,6 +56,7 @@ class EvaParserVisitor(frameQLParserVisitor):
         target_list = None
         from_clause = None
         where_clause = None
+        limit_clause = None
         # first child will be a SELECT terminal token
         for child in ctx.children[1:]:
             try:
@@ -66,13 +68,17 @@ class EvaParserVisitor(frameQLParserVisitor):
                     clause = self.visit(child)
                     from_clause = clause.get('from', None)
                     where_clause = clause.get('where', None)
+
+                elif rule_idx == frameQLParser.RULE_limitClause:
+                    limit_clause = self.visit(child)
             except BaseException:
                 # stop parsing something bad happened
                 return None
         # we don't support multiple table sources 
         if from_clause is not None:
             from_clause = from_clause[0]
-        select_stmt = SelectStatement(target_list, from_clause, where_clause)
+        select_stmt = SelectStatement(target_list, from_clause,
+                                      where_clause, limit_clause=limit_clause)
         return select_stmt
 
     # Visit a parse tree produced by frameQLParser#selectElements.
@@ -105,7 +111,7 @@ class EvaParserVisitor(frameQLParserVisitor):
         # handle database name and schema names
         if table_name is not None:
             table_info = TableInfo(table_name=table_name)
-            return TableRef(table_info) 
+            return TableRef(table_info)
         else:
             warnings.warn("Invalid from table", SyntaxWarning)
 
@@ -137,7 +143,7 @@ class EvaParserVisitor(frameQLParserVisitor):
             return ConstantValueExpression(float(ctx.getText()))
 
         return self.visitChildren(ctx)
-    
+
     # Visit a parse tree produced by frameQLParser#logicalExpression.
     def visitLogicalExpression(
             self, ctx: frameQLParser.LogicalExpressionContext):
@@ -163,7 +169,7 @@ class EvaParserVisitor(frameQLParserVisitor):
         # ToDo Can there be >1 expression in this case
         expr = ctx.expression(0)
         return self.visit(expr)
- 
+
     # Visit a parse tree produced by frameQLParser#comparisonOperator.
     def visitComparisonOperator(
             self, ctx: frameQLParser.ComparisonOperatorContext):
@@ -187,3 +193,15 @@ class EvaParserVisitor(frameQLParserVisitor):
             return ExpressionType.LOGICAL_AND
         else:
             return ExpressionType.INVALID
+
+    def visitLimitClause(self, ctx: frameQLParser.LimitClauseContext):
+        limit = self.visit(ctx.limit) if ctx.limit else None
+        offset = self.visit(ctx.offset) if ctx.offset else None
+        return LimitClause(limit=limit, offset=offset)
+
+    def visitDecimalLiteral(self, ctx: frameQLParser.DecimalLiteralContext):
+        value = ctx.getText()
+        if value:
+            return float(value)
+
+        return 0

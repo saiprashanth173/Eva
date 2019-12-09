@@ -1,4 +1,5 @@
 from src.query_parser.eva_statement import EvaStatement
+from src.query_parser.limit_clause import LimitClause
 from src.query_parser.types import StatementType
 from src.expression.abstract_expression import AbstractExpression
 from src.loaders.abstract_loader import AbstractLoader
@@ -19,17 +20,20 @@ class SelectStatement(EvaStatement):
         table reference in the select query
     _where_clause : AbstractExpression
         predicate of the select query, represented as a expression tree.
+    _limit_clause: LimitClause
     **kwargs : to support other functionality, Orderby, Distinct, Groupby.
     """
 
     def __init__(self, target_list: List[AbstractExpression] = None,
                  from_table: TableRef = None,
                  where_clause: AbstractExpression = None,
+                 limit_clause: LimitClause = None,
                  **kwargs):
         super().__init__(StatementType.SELECT)
         self._from_table = from_table
         self._where_clause = where_clause
         self._target_list = target_list
+        self._limit_clause = limit_clause
 
     @property
     def where_clause(self):
@@ -54,6 +58,10 @@ class SelectStatement(EvaStatement):
     @from_table.setter
     def from_table(self, table: TableRef):
         self._from_table = table
+
+    @property
+    def limit_clause(self):
+        return self._limit_clause
 
     def __str__(self) -> str:
         print_str = "SELECT {} FROM {} WHERE {}".format(self._target_list,

@@ -1,10 +1,11 @@
 import unittest
 from unittest import mock
-from unittest.mock import MagicMock, call, Mock
+from unittest.mock import MagicMock, call
 
-from src.query_parser.eva_ql_parser_visitor import EvaParserVisitor
-from third_party.evaQL.parser.frameQLParser import frameQLParser
 from src.expression.abstract_expression import ExpressionType
+from src.query_parser.eva_ql_parser_visitor import EvaParserVisitor
+from src.query_parser.limit_clause import LimitClause
+from third_party.evaQL.parser.frameQLParser import frameQLParser
 
 
 class ParserVisitorTest(unittest.TestCase):
@@ -91,6 +92,27 @@ class ParserVisitorTest(unittest.TestCase):
         self.assertEqual(
             visitor.visitComparisonOperator(ctx),
             ExpressionType.COMPARE_GREATER)
+
+    @mock.patch.object(EvaParserVisitor, 'visit')
+    def test_limit_clause(self, mock_visit):
+        mock_visit.side_effect = lambda x: x
+        ctx = MagicMock()
+        visitor = EvaParserVisitor()
+        ctx.limit = 10
+        ctx.offset = 20
+        actual = visitor.visitLimitClause(ctx)
+        mock_visit.assert_has_calls([call(ctx.limit), call(ctx.offset)])
+        expected = LimitClause(limit=ctx.limit, offset=ctx.offset)
+        self.assertEqual(expected, actual)
+
+    def test_decimal_literal(self):
+        ctx = MagicMock()
+        ctx.getText.return_value = '12'
+        visitor = EvaParserVisitor()
+
+        actual = visitor.visitDecimalLiteral(ctx)
+        expected = 12.0
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':
