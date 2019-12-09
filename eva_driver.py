@@ -28,7 +28,7 @@ UDFS = {
 
 VIDEOS = {
     "test_1": VideoMetaInfo(
-        "/Users/prashanth/Projects/DDL/Eva/data/test_1.mp4", 30,
+        "/home/james-gangavarapu/Desktop/test_1.mp4", 30,
         VideoFormat.MP4)
 
 }
